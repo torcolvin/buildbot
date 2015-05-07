@@ -830,8 +830,10 @@ class RunProcess:
                     # probably no-such-process, maybe because there is no process
                     # group
                     pass
-
-        elif runtime.platformType == "win32":
+        # Collect specific information about a jobobject. If we have a job
+        # object, sending a signal to kill the jobobject will take down more
+        # processes than using taskkill
+        elif runtime.platformType == "win32" and not hasattr(self.process, 'job'):
             if interruptSignal is None:
                 log.msg("interruptSignal==None, only pretending to kill child")
             elif self.process.pid is not None:
@@ -850,6 +852,10 @@ class RunProcess:
         if not hit:
             try:
                 log.msg("trying process.signalProcess('%s')" % (interruptSignal,))
+                if hasattr(self.process, 'job'):
+                    log.msg("Trying to collect processes from jobinfo")
+                    self.sendStatus({'header': "Info from jobinfo module\n"})
+                    msg = jobinfo.getJobInfo(self.process.job, self)
                 self.process.signalProcess(interruptSignal)
                 log.msg(" signal %s sent successfully" % (interruptSignal,))
                 hit = 1

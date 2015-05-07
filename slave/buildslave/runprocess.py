@@ -38,6 +38,7 @@ from twisted.python import log
 from twisted.python import runtime
 from twisted.python.win32 import quoteArguments
 
+from buildslave import jobinfo
 from buildslave import util
 from buildslave.exceptions import AbandonChain
 
@@ -235,7 +236,7 @@ class RunProcess:
     """
 
     notreally = False
-    BACKUP_TIMEOUT = 5
+    BACKUP_TIMEOUT = 30
     interruptSignal = "KILL"
     CHUNK_LIMIT = 128 * 1024
 
@@ -831,25 +832,17 @@ class RunProcess:
                     # group
                     pass
 
-        elif runtime.platformType == "win32":
-            if interruptSignal is None:
-                log.msg("interruptSignal==None, only pretending to kill child")
-            elif self.process.pid is not None:
-                if interruptSignal == "TERM":
-                    log.msg("using TASKKILL PID /T to kill pid %s" % self.process.pid)
-                    subprocess.check_call("TASKKILL /PID %s /T" % self.process.pid)
-                    log.msg("taskkill'd pid %s" % self.process.pid)
-                    hit = 1
-                elif interruptSignal == "KILL":
-                    log.msg("using TASKKILL PID /F /T to kill pid %s" % self.process.pid)
-                    subprocess.check_call("TASKKILL /F /PID %s /T" % self.process.pid)
-                    log.msg("taskkill'd pid %s" % self.process.pid)
-                    hit = 1
-
         # try signalling the process itself (works on Windows too, sorta)
         if not hit:
             try:
-                log.msg("trying process.signalProcess('%s')" % (interruptSignal,))
+                log.msg("Trying to collect processes from jobinfo")
+                self.sendStatus({'header': "Info from jobinfo module\n"})
+                if runtime.platformType == "win32":
+                    msg = jobinfo.get_job_info(self.process.job, self)
+                elif self.useProcGroup:
+                    msg = jobinfo.get_proc_info(self.process.pgid, self)
+                else:
+                    msg = jobinfo.get_proc_info(self.process.pid, self)
                 self.process.signalProcess(interruptSignal)
                 log.msg(" signal %s sent successfully" % (interruptSignal,))
                 hit = 1

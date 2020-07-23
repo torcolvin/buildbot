@@ -75,8 +75,8 @@ def print_process_tree(process_list, buildbot_process):
                 datetime.datetime.fromtimestamp(
                     creation_time).strftime("%Y-%m-%d %H:%M:%S")
             msg += " Creation Time: [%s]" % creation_time
-            (user, systime) = get_process_attr(pidobj, "cpu_times")
-            msg += " User: [%s] Sys: [%s]" % (user, systime)
+            cpu_times = get_process_attr(pidobj, "cpu_times")
+            msg += " User: [%s] Sys: [%s]" % (cpu_times.user, cpu_times.system)
             level = level_map.get(pid, level)
             line = "^ " * level
             line += msg
